@@ -31,7 +31,7 @@ async function login(c, email) {
   const v = await c.post('/api/auth/verify', { email, code: r.json.devCode });
   assert.equal(v.status, 200);
 }
-const profile = (o = {}) => ({ name: '손현빈', gender: 'M', want_gender: 'F', dept: '컴퓨터공학부', student_no: '21', birth: '2002-03-15', mbti: 'ENTP', instagram: '@hyunbin.son', likes: ['☕ 카페 투어', '🎮 게임'], xmas: ['🎪 크리스마스 마켓'], agree_collect: true, agree_share: true, ...o });
+const profile = (o = {}) => ({ gender: 'M', want_gender: 'F', dept: '컴퓨터공학부', student_no: '21', birth: '2002-03-15', mbti: 'ENTP', instagram: '@hyunbin.son', likes: ['☕ 카페 투어', '🎮 게임'], xmas: ['🎪 크리스마스 마켓'], agree_collect: true, agree_share: true, ...o });
 
 test('학교 메일만 허용 + 속도 제한', async () => {
   const { client } = setup(); const c = client();
@@ -67,13 +67,13 @@ test('전체 흐름: 수락 전 정보 제한, 생일 정보 미노출, 서로 �
   await login(me, 'me@khu.ac.kr');
   assert.equal((await me.post('/api/apply', profile({ exclude_emails: 'ex@khu.ac.kr' }))).status, 200);
   await login(her, 'her@khu.ac.kr');
-  assert.equal((await her.post('/api/apply', profile({ name: '김하은', gender: 'F', want_gender: 'M', dept: '경영학과', mbti: 'INFJ', instagram: 'haeun_k' }))).status, 200);
+  assert.equal((await her.post('/api/apply', profile({ gender: 'F', want_gender: 'M', dept: '경영학과', mbti: 'INFJ', instagram: 'haeun_k' }))).status, 200);
   await login(client(), 'ex@khu.ac.kr');
   const ex = client(); await login(ex, 'ex@khu.ac.kr');
-  await ex.post('/api/apply', profile({ name: '박전애', gender: 'F', want_gender: 'M', dept: '사학과', mbti: 'ENFP' }));
+  await ex.post('/api/apply', profile({ gender: 'F', want_gender: 'M', dept: '사학과', mbti: 'ENFP' }));
   // 같은 과 남자 → 나와는 안 잡혀야 함
   const same = client(); await login(same, 'same@khu.ac.kr');
-  await same.post('/api/apply', profile({ name: '이같과', gender: 'F', want_gender: 'M', dept: '컴퓨터공학부', same_dept: 'ok' }));
+  await same.post('/api/apply', profile({ gender: 'F', want_gender: 'M', dept: '컴퓨터공학부', same_dept: 'ok' }));
 
   assert.equal((await admin.post('/api/admin/login', { password: 'pw' })).status, 200);
   assert.equal((await admin.post('/api/admin/match', {})).status, 400); // 신청 중엔 매칭 불가
@@ -88,8 +88,9 @@ test('전체 흐름: 수락 전 정보 제한, 생일 정보 미노출, 서로 �
 
   const r1 = (await me.get('/api/result')).json;
   assert.equal(r1.matched, true);
-  assert.equal(r1.partner.givenName, '하은'); // 지인 제외·같은 과 제외로 하은만 가능
+  assert.equal(r1.partner.mbti, 'INFJ'); // 지인 제외·같은 과 제외로 하은만 가능
   assert.equal(r1.partner.name, undefined);
+  assert.equal(r1.partner.instagram, undefined);
   assert.equal(r1.partner.instagram, undefined);
   assert.equal(r1.partner.dept, undefined);
   assert.equal(r1.partner.college, '경영대학');
@@ -104,13 +105,13 @@ test('전체 흐름: 수락 전 정보 제한, 생일 정보 미노출, 서로 �
   await her.post('/api/result/answer', { answer: 'yes' });
   const r2 = (await me.get('/api/result')).json;
   assert.equal(r2.partner.instagram, 'haeun_k');
-  assert.equal(r2.partner.name, '김하은');
+  assert.equal(r2.partner.instagram, 'haeun_k');
 
   // 차단하면 실명·인스타가 상대에게서 사라짐
   await her.post('/api/result/block', { reason: 'test' });
   const r3 = (await me.get('/api/result')).json;
   assert.equal(r3.partner.instagram, undefined);
-  assert.equal(r3.partner.name, undefined);
+  assert.equal(r3.partner.instagram, undefined);
   assert.equal(r3.blocked, true);
   const reports = await store.listReports();
   assert.equal(reports.length, 1);
@@ -148,7 +149,7 @@ test('알림 메일: 개인 메일로도 발송 + 마감 24시간 전 리마인�
   const { client, app, sent, store } = setup();
   const me = client(), her = client(), admin = client();
   await login(me, 'me@khu.ac.kr'); await me.post('/api/apply', profile({ notify_email: 'me@gmail.com' }));
-  await login(her, 'her@khu.ac.kr'); await her.post('/api/apply', profile({ name: '김하은', gender: 'F', want_gender: 'M', dept: '경영학과', instagram: 'haeun' }));
+  await login(her, 'her@khu.ac.kr'); await her.post('/api/apply', profile({ gender: 'F', want_gender: 'M', dept: '경영학과', instagram: 'haeun' }));
   await admin.post('/api/admin/login', { password: 'pw' });
   await admin.post('/api/admin/phase', { phase: 'closed' }); await admin.post('/api/admin/match', { commit: true }); await admin.post('/api/admin/phase', { phase: 'announced' });
   await app.runJob({ type: 'announce-mail' });
@@ -160,4 +161,12 @@ test('알림 메일: 개인 메일로도 발송 + 마감 24시간 전 리마인�
   assert.deepEqual(await app.runJob({ type: 'reminders' }), { sent: 1 }); // 답 안 한 나에게만
   assert.ok(sent.every((m) => m.to.startsWith('me@')) && sent.length === 2); // 학교 + 개인 메일
   assert.deepEqual(await app.runJob({ type: 'reminders' }), { sent: 0 }); // 한 번만
+});
+
+test('학과 없이 신청 가능, 학과 없는 두 사람은 같은 과 규칙에 안 걸림', () => {
+  const { runMatching } = require('../lib/matching');
+  const a = { id: 'a', gender: 'M', want_gender: 'F', dept: '', birth: '2002-01-01', mbti: 'ENFP', exclude: [] };
+  const b = { ...a, id: 'b', gender: 'F', want_gender: 'M' };
+  assert.equal(runMatching([a, b]).length, 1);
+  assert.equal(runMatching([{ ...a, same_campus: true }, b]).length, 0);
 });

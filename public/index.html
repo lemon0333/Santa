@@ -35,7 +35,7 @@
     <p class="sub" id="applicant-count"></p>
     <ul class="steps">
       <li><span class="n">1</span><div><b>학교 메일로 인증</b><br>@khu.ac.kr 메일로 받은 코드만 입력하면 끝.</div></li>
-      <li><span class="n">2</span><div><b>프로필 작성</b><br>학과, MBTI, 생년월일, 인스타 아이디를 적어요. 사진은 안 받아요.</div></li>
+      <li><span class="n">2</span><div><b>프로필 작성</b><br>MBTI, 생년월일, 인스타 아이디를 적어요. 이름과 사진은 안 받고, 학과는 원하면 적어요.</div></li>
       <li><span class="n">3</span><div><b>발표일에 한 번에 공개</b><br>MBTI + 사주 궁합으로 짝을 지어요. 같은 과를 빼달라고 하면 절대 안 잡히고, 내가 적은 지인도 제외!</div></li>
       <li><span class="n">4</span><div><b>둘 다 수락하면 인스타 공개</b><br>한 명이라도 거절하면 실명도 인스타도 공개되지 않아요.</div></li>
     </ul>
@@ -64,9 +64,6 @@
     <h2 id="apply-title">프로필 작성</h2>
     <p class="sub">발표 전까지 언제든 고칠 수 있어요.</p>
     <form id="apply-form" novalidate>
-      <label for="name">이름</label>
-      <input type="text" id="name" name="name" maxlength="20" placeholder="실명">
-
       <label>성별</label>
       <div class="seg">
         <input type="radio" name="gender" id="g-m" value="M"><label for="g-m">남자</label>
@@ -80,9 +77,9 @@
         <input type="radio" name="want_gender" id="w-a" value="A"><label for="w-a">상관없음</label>
       </div>
 
-      <label for="dept">학과</label>
-      <select id="dept" name="dept"><option value="">학과를 골라주세요</option></select>
-      <label>같은 과 사람은?</label>
+      <label for="dept">학과 <span class="hint">(선택)</span></label>
+      <select id="dept" name="dept"><option value="">선택 안 함</option></select>
+      <label>같은 과 사람은? <span class="hint">(학과를 고른 경우에만 적용)</span></label>
       <div class="seg">
         <input type="radio" name="same_dept" id="sd-no" value="no" checked><label for="sd-no">같은 과는 빼주세요</label>
         <input type="radio" name="same_dept" id="sd-ok" value="ok"><label for="sd-ok">같은 과도 괜찮아요</label>
@@ -133,8 +130,8 @@
       <p class="hint">적은 사람과는 매칭되지 않고, 상대는 이 사실을 알 수 없어요.</p>
 
       <div class="consent">
-        <label class="check"><input type="checkbox" name="agree_collect" id="agree_collect"> <span><b>(필수) 개인정보 수집·이용 동의</b><br>학교 메일, 알림 받을 메일(선택), 이름, 성별, 학과, 학번, 생년월일, MBTI, 소개, 인스타 아이디를 매칭에만 쓰고 <b class="retention"></b>에 모두 삭제해요.</span></label>
-        <label class="check"><input type="checkbox" name="agree_share" id="agree_share"> <span><b>(필수) 매칭 상대에게 정보 제공 동의</b><br>매칭되면 상대에게 이름(성 제외), 단과대, MBTI, 소개가 보여요. 서로 수락하면 실명, 학과, 학번, 인스타 아이디까지 공개돼요.</span></label>
+        <label class="check"><input type="checkbox" name="agree_collect" id="agree_collect"> <span><b>(필수) 개인정보 수집·이용 동의</b><br>학교 메일, 알림 받을 메일(선택), 성별, 학과(선택), 학번, 생년월일, MBTI, 소개, 인스타 아이디를 매칭에만 쓰고 <b class="retention"></b>에 모두 삭제해요.</span></label>
+        <label class="check"><input type="checkbox" name="agree_share" id="agree_share"> <span><b>(필수) 매칭 상대에게 정보 제공 동의</b><br>매칭되면 상대에게 단과대(학과를 고른 경우), MBTI, 소개가 보여요. 서로 수락하면 학과, 학번, 인스타 아이디까지 공개돼요.</span></label>
         <p class="hint">동의하지 않을 수 있지만, 그러면 신청할 수 없어요. 경희대 재학생이고 19세가 되는 해 이후 출생이 아니어야 해요. 허위 정보는 제재돼요. <a href="/privacy.html" target="_blank">개인정보 처리방침 전문</a></p>
       </div>
 

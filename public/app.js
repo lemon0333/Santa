@@ -163,8 +163,8 @@ function fillForm() {
   const f = $('#apply-form');
   $('#apply-title').textContent = ME.applied ? '프로필 수정' : '프로필 작성';
   $('#apply-btn').textContent = ME.applied ? '수정 완료' : '신청하기 🎁';
-  if (!ME.name) return;
-  f.name.value = ME.name; sel.value = ME.dept || '';
+  if (!ME.applied) return;
+  sel.value = ME.dept || '';
   f.same_campus.checked = !!ME.same_campus;
   f.student_no.value = ME.student_no || ''; f.birth.value = ME.birth || '';
   f.intro.value = ME.intro || ''; f.instagram.value = ME.instagram || ''; f.notify_email.value = ME.notify_email || '';
@@ -174,7 +174,7 @@ function fillForm() {
   (ME.mbti || '').split('').forEach((ch, i) => check('m' + i, ch));
 }
 // 오류가 난 칸을 한꺼번에 표시
-const FIELD_EL = { instagram: '.insta', likes: '#likes', xmas: '#xmas', name: '#name', gender: '#g-m', want_gender: '#w-m', dept: '#dept', student_no: '#student_no', birth: '#birth', mbti: '.mbti', agree_collect: '#agree_collect', agree_share: '#agree_share' };
+const FIELD_EL = { instagram: '.insta', likes: '#likes', xmas: '#xmas', gender: '#g-m', want_gender: '#w-m', dept: '#dept', student_no: '#student_no', birth: '#birth', mbti: '.mbti', agree_collect: '#agree_collect', agree_share: '#agree_share' };
 function fieldEl(field) {
   const el = $(FIELD_EL[field] || '#' + field); if (!el) return null;
   if (el.type === 'radio') return el.closest('.seg');
@@ -191,7 +191,7 @@ function collect(f) {
   const val = (n) => (f.querySelector(`input[name=${n}]:checked`) || {}).value || '';
   const mbti = [0, 1, 2, 3].map((i) => val('m' + i)).join('');
   return {
-    name: f.name.value.trim(), gender: val('gender'), want_gender: val('want_gender'), dept: f.dept.value, same_dept: val('same_dept') || 'no', same_campus: f.same_campus.checked,
+    gender: val('gender'), want_gender: val('want_gender'), dept: f.dept.value, same_dept: val('same_dept') || 'no', same_campus: f.same_campus.checked,
     student_no: f.student_no.value ? String(f.student_no.value).padStart(2, '0') : '', birth: f.birth.value,
     mbti: mbti.length === 4 ? mbti : '', intro: f.intro.value, instagram: f.instagram.value.trim(), notify_email: f.notify_email.value.trim(), likes: chipValues('likes'), xmas: chipValues('xmas'), exclude_emails: f.exclude_emails.value,
     agree_collect: f.agree_collect.checked, agree_share: f.agree_share.checked,
@@ -199,10 +199,9 @@ function collect(f) {
 }
 function clientCheck(b, f) {
   const e = [];
-  if (b.name.length < 2) e.push(['name', '이름을 적어주세요']);
   if (!b.gender) e.push(['gender', '성별을 골라주세요']);
   if (!b.want_gender) e.push(['want_gender', '만나고 싶은 상대를 골라주세요']);
-  if (!b.dept) e.push(['dept', '학과를 골라주세요']);
+  if (b.same_campus && !b.dept) e.push(['dept', '같은 캠퍼스만 원하면 학과를 골라주세요']);
   if (!/^\d{2}$/.test(b.student_no)) e.push(['student_no', '학번 두 자리를 적어주세요']);
   if (!b.birth) e.push(['birth', '생년월일을 골라주세요']);
   if (!b.mbti) e.push(['mbti', 'MBTI 네 글자를 모두 골라주세요']);
@@ -239,9 +238,9 @@ function showDone(editable) {
     $('#ratio').classList.remove('hidden');
   }
   const s = ME.saju;
-  $('#my-saju').innerHTML = s ? `🔮 <b>${esc(ME.name)}</b>님은 <b>${s.ilju}일주(${s.stemHanja})</b>, <b>${s.element}</b> 기운이에요.<br>${s.elementDesc} · ${esc(ME.mbti)}` : '';
+  $('#my-saju').innerHTML = s ? `🔮 나는 <b>${s.ilju}일주(${s.stemHanja})</b>, <b>${s.element}</b> 기운이에요.<br>${s.elementDesc} · ${esc(ME.mbti)}` : '';
   $('#preview-card').innerHTML = `<div class="avatar sm el-${esc(s?.element || '')}">${ELEMENT_EMOJI[s?.element] || '🎁'}</div>
-    <div><small>매칭 상대에게는 처음에 이렇게 보여요</small><br><b>${esc((ME.name || '').slice(1))}</b> · ${esc(ME.college || '')} · ${esc(ME.mbti || '')}<br><small>실명, 학과, 학번, 인스타는 서로 수락한 뒤에만 공개돼요</small></div>`;
+    <div><small>매칭 상대에게는 처음에 이렇게 보여요</small><br><b>${esc([ME.college, ME.mbti].filter(Boolean).join(' · '))}</b><br><small>학과, 학번, 인스타는 서로 수락한 뒤에만 공개돼요 (이름은 받지 않아요)</small></div>`;
   // 캘린더: 발표 시각부터 1시간
   const start = new Date(CONFIG.announceAt), end = new Date(start.getTime() + 36e5);
   const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
@@ -303,7 +302,7 @@ function renderResult(r) {
   let action;
   if (r.blocked) action = `<div class="contact-box">${r.iBlocked ? '차단했어요. 상대는 더 이상 내 실명과 인스타를 볼 수 없어요.' : '이 매칭은 종료됐어요.'}</div>`;
   else if (!r.myAnswer && r.expired) action = `<div class="contact-box">답변 기한이 지났어요 ⛄</div>`;
-  else if (!r.myAnswer) action = `<p class="sub" style="margin-top:18px">둘 다 수락하면 실명, 학과, 학번, 인스타가 공개돼요.<br>거절해도 상대에게 이유는 알려지지 않아요.</p>
+  else if (!r.myAnswer) action = `<p class="sub" style="margin-top:18px">둘 다 수락하면 학과, 학번, 인스타가 공개돼요.<br>거절해도 상대에게 이유는 알려지지 않아요.</p>
       <div class="btn-row"><button class="btn ghost" data-ans="no">아쉽지만 패스</button><button class="btn" data-ans="yes">만나볼래요 💌</button></div>
       <div class="deadline">답변 기한: ${fmtDate(r.deadline)}</div>`;
   else if (r.myAnswer === 'no') action = `<div class="contact-box">패스했어요. 다음 시즌에 더 좋은 인연이 있길! 🎄</div>`;
@@ -313,8 +312,8 @@ function renderResult(r) {
   else if (r.theirAnswer === 'expired') action = `<div class="contact-box">상대가 기한 안에 답하지 않았어요. 다음 시즌엔 꼭! ⛄</div>`;
   else action = `<div class="contact-box">💌 수락했어요! 상대의 답을 기다리는 중이에요.<br><span class="hint">상대도 수락하면 학교 메일로 알려드릴게요. 기한: ${fmtDate(r.deadline)}</span></div>`;
 
-  const title = both ? esc(p.name) : esc(p.givenName);
-  const meta = both ? `${esc(p.dept)} · ${esc(p.student_no)}학번 · ${esc(p.mbti)}` : `${esc(p.college)} · ${esc(p.mbti)}`;
+  const title = both ? '@' + esc(p.instagram) : '🎁 산타의 선물';
+  const meta = esc((both ? [p.dept, p.student_no && p.student_no + '학번', p.mbti] : [p.college, p.mbti]).filter(Boolean).join(' · '));
   $('#partner').innerHTML = `
     <div class="stage s1"><div class="display" style="font-size:18px;color:var(--muted)">🎄 우리 둘의 궁합 점수는</div>
       <div class="score"><div class="big">${c.total}점</div></div></div>

@@ -95,7 +95,7 @@ async function loadUsers() {
   const r = await fetch('/api/admin/users'); if (!r.ok) return;
   const users = await r.json();
   $('#users').innerHTML = users.map((u) => `<div style="border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;background:${u.blocked ? '#fde8e8' : '#fff'}">
-    <b>${esc(u.name)}</b> ${u.gender === 'M' ? '남' : '여'} · ${esc(u.student_no)}학번<br>${esc(u.dept)}<br>${esc(u.email)}<br>@${esc(u.instagram)} · 생일 ${esc(u.birth)}<br>
+    <b>@${esc(u.instagram)}</b> ${u.gender === 'M' ? '남' : '여'} · ${esc(u.student_no)}학번<br>${esc(u.dept || '학과 미선택')}<br>${esc(u.email)}<br>생일 ${esc(u.birth)}<br>
     신고 <b style="color:${u.reports ? 'var(--red)' : 'inherit'}">${u.reports}</b>
     <button class="btn ${u.blocked ? 'green' : 'ghost'}" style="padding:8px;margin-top:6px;font-size:13px" data-ban="${u.id}" data-to="${u.blocked ? '' : '1'}">${u.blocked ? '제재 해제' : '제재'}</button></div>`).join('') || '신청자가 없어요';
   $('#users').querySelectorAll('[data-ban]').forEach((b) => (b.onclick = async () => {
