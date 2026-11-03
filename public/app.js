@@ -85,7 +85,7 @@ async function route() {
   $('#foot-auth').classList.toggle('hidden', !ME);
   if (ME) $('#foot-email').textContent = ME.email;
   document.querySelectorAll('.retention').forEach((el) => (el.textContent = CONFIG.retentionDate));
-  $('#applicant-count').textContent = CONFIG.applicants >= 10 ? `지금까지 ${CONFIG.applicants}명이 신청했어요 🔥` : '친구들보다 먼저 신청해 보세요!';
+  $('#applicant-count').textContent = '친구들보다 먼저 신청해 보세요!';
   startCountdown();
 
   const { phase } = CONFIG;
@@ -243,12 +243,6 @@ function showDone(editable) {
   $('#done-msg').innerHTML = editable
     ? `${fmtDate(CONFIG.announceAt)}에 메일로 결과를 알려드릴게요.<br>마감 전까지 프로필은 언제든 고칠 수 있어요.`
     : '신청이 마감됐어요. 지금 짝을 맞추는 중이니 발표일을 기다려 주세요!';
-  if (CONFIG.ratio) {
-    const { M, F } = CONFIG.ratio, tot = M + F || 1;
-    const fewer = M < F ? '남자' : F < M ? '여자' : null;
-    $('#ratio').innerHTML = `지금 신청 <b>${CONFIG.applicants}명</b> · 남 ${M} : 여 ${F}<div class="bar2"><i style="width:${(M / tot) * 100}%"></i><i style="width:${(F / tot) * 100}%"></i></div>${fewer ? `<span class="hint">${fewer} 친구를 데려오면 모두의 매칭 확률이 올라가요!</span>` : ''}`;
-    $('#ratio').classList.remove('hidden');
-  }
   const s = ME.saju;
   $('#my-saju').innerHTML = s ? `🔮 나는 <b>${s.ilju}일주(${s.stemHanja})</b>, <b>${s.element}</b> 기운이에요.<br>${s.elementDesc} · ${esc(ME.mbti)}` : '';
   $('#preview-card').innerHTML = `<div class="avatar sm el-${esc(s?.element || '')}">${ELEMENT_EMOJI[s?.element] || '🎁'}</div>
