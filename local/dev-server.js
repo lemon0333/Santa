@@ -27,12 +27,14 @@ http.createServer(async (req, res) => {
     const chunks = []; for await (const c of req) chunks.push(c);
     let body = {}; try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch {}
     const cookies = Object.fromEntries((req.headers.cookie || '').split(';').filter(Boolean).map((c) => { const i = c.indexOf('='); return [c.slice(0, i).trim(), c.slice(i + 1)]; }));
-    const r = await app({ method: req.method, path: url.pathname, cookies, body, ip: req.socket.remoteAddress });
+    const r = await app({ method: req.method, path: url.pathname, cookies, body, ip: req.socket.remoteAddress, origin: req.headers.origin, host: req.headers.host });
     res.writeHead(r.status, { 'Content-Type': 'application/json; charset=utf-8', ...(r.headers || {}), ...(r.cookies?.length ? { 'Set-Cookie': r.cookies } : {}) });
     return res.end(r.json ? JSON.stringify(r.json) : '');
   }
   let f = path.join(WEB, path.normalize(url.pathname === '/' ? '/index.html' : url.pathname));
   if (!f.startsWith(WEB) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) f = path.join(WEB, 'index.html');
-  res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' });
+  // 배포(vercel.json)와 같은 보안 헤더를 로컬에서도 적용
+  const vh = Object.fromEntries(require('../vercel.json').headers[0].headers.map((x) => [x.key, x.value]));
+  res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream', ...vh });
   fs.createReadStream(f).pipe(res);
 }).listen(PORT, () => console.log(`🎄 로컬: http://localhost:${PORT}  관리자: /admin.html (비번 admin)`));
