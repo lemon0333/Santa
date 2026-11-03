@@ -46,6 +46,8 @@ npm test
    | `GMAIL_USER` | 보내는 Gmail 주소 |
    | `GMAIL_APP_PASSWORD` | 1번에서 만든 16자리 |
    | `CRON_SECRET` | 아무 랜덤 문자열 (Vercel 크론이 자동으로 씀) |
+   | `UMAMI_WEBSITE_ID` (선택) | Umami 방문자 통계 Website ID |
+   | `UMAMI_SCRIPT_URL` (선택) | 직접 설치한 Umami면 `https://내umami주소/script.js`, Umami Cloud면 비움 |
    | `SITE_URL` (선택) | 메일에 들어갈 주소, 비우면 vercel.app 주소 사용 |
 
    랜덤 문자열은 터미널에서 `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.

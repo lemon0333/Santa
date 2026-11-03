@@ -63,9 +63,17 @@ function startCountdown() {
   step(); cdTimer = setInterval(step, 1000);
 }
 
+// ---------- 방문자 통계 (Umami, 환경변수에 ID가 있을 때만) ----------
+function loadUmami(u) {
+  if (!u || document.getElementById('umami')) return;
+  const s = document.createElement('script');
+  s.id = 'umami'; s.defer = true; s.src = u.src; s.dataset.websiteId = u.id;
+  document.head.appendChild(s);
+}
+
 // ---------- 화면 결정 ----------
 async function route() {
-  try { CONFIG = await api('/api/config'); }
+  try { CONFIG = await api('/api/config'); loadUmami(CONFIG.umami); }
   catch (e) {
     $('#count-note').textContent = '';
     const box = document.createElement('section'); box.className = 'card';
