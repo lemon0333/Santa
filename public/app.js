@@ -65,7 +65,14 @@ function startCountdown() {
 
 // ---------- 화면 결정 ----------
 async function route() {
-  CONFIG = await api('/api/config');
+  try { CONFIG = await api('/api/config'); }
+  catch (e) {
+    $('#count-note').textContent = '';
+    const box = document.createElement('section'); box.className = 'card';
+    box.innerHTML = '<h2>🛠 잠깐 점검 중이에요</h2><p class="sub"></p>';
+    box.querySelector('.sub').textContent = '서버에 연결하지 못했어요. 잠시 후 새로고침해 주세요. (' + e.message + ')';
+    document.querySelector('.wrap').appendChild(box); return;
+  }
   try { ME = await api('/api/me'); } catch { ME = null; }
   $('#foot-auth').classList.toggle('hidden', !ME);
   if (ME) $('#foot-email').textContent = ME.email;
