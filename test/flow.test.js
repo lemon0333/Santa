@@ -170,3 +170,17 @@ test('학과 없이 신청 가능, 학과 없는 두 사람은 같은 과 규칙
   assert.equal(runMatching([a, b]).length, 1);
   assert.equal(runMatching([{ ...a, same_campus: true }, b]).length, 0);
 });
+
+test('인스타 대신 카톡 ID만 적어도 신청 가능, 둘 다 없으면 거절', async () => {
+  const store = mkStore();
+  const app = createApp({ store, mail: async () => {}, enqueue: async () => {}, cfg: { emailDomain: 'khu.ac.kr', secret: 's'.repeat(40), adminPassword: 'pw', siteUrl: 'http://x', dev: true } });
+  const call = async (method, path, body, cookie) => app({ method, path, body, cookies: cookie ? { sid: cookie } : {}, ip: '1' });
+  const r = await call('POST', '/api/auth/request', { email: 'k@khu.ac.kr' });
+  const v = await call('POST', '/api/auth/verify', { email: 'k@khu.ac.kr', code: r.json.devCode });
+  const sid = v.cookies[0].split(';')[0].split('=')[1];
+  assert.equal((await call('POST', '/api/apply', profile({ instagram: '', kakao: '' }), sid)).status, 400);
+  assert.equal((await call('POST', '/api/apply', profile({ instagram: '', kakao: 'a!' }), sid)).status, 400);
+  assert.equal((await call('POST', '/api/apply', profile({ instagram: '', kakao: 'Santa_Kim' }), sid)).status, 200);
+  const me = await call('GET', '/api/me', null, sid);
+  assert.equal(me.json.kakao, 'santa_kim'); assert.equal(me.json.instagram, '');
+});

@@ -175,14 +175,14 @@ function fillForm() {
   sel.value = ME.dept || '';
   f.same_campus.checked = !!ME.same_campus;
   f.student_no.value = ME.student_no || ''; f.birth.value = ME.birth || '';
-  f.intro.value = ME.intro || ''; f.instagram.value = ME.instagram || ''; f.notify_email.value = ME.notify_email || '';
+  f.intro.value = ME.intro || ''; f.instagram.value = ME.instagram || ''; f.kakao.value = ME.kakao || ''; f.notify_email.value = ME.notify_email || '';
   if (ME.excludeCount) f.exclude_emails.placeholder = `지금 ${ME.excludeCount}명을 제외 중이에요. 비워 두면 그대로 유지되고, 새로 적으면 새 목록으로 바뀌어요`;
   const check = (name, v) => { const el = f.querySelector(`input[name=${name}][value="${v}"]`); if (el) el.checked = true; };
   check('gender', ME.gender); check('want_gender', ME.want_gender); check('same_dept', ME.allow_same_dept ? 'ok' : 'no');
   (ME.mbti || '').split('').forEach((ch, i) => check('m' + i, ch));
 }
 // 오류가 난 칸을 한꺼번에 표시
-const FIELD_EL = { instagram: '.insta', likes: '#likes', xmas: '#xmas', gender: '#g-m', want_gender: '#w-m', dept: '#dept', student_no: '#student_no', birth: '#birth', mbti: '.mbti', agree_collect: '#agree_collect', agree_share: '#agree_share' };
+const FIELD_EL = { instagram: '.insta', kakao: '#kakao', likes: '#likes', xmas: '#xmas', gender: '#g-m', want_gender: '#w-m', dept: '#dept', student_no: '#student_no', birth: '#birth', mbti: '.mbti', agree_collect: '#agree_collect', agree_share: '#agree_share' };
 function fieldEl(field) {
   const el = $(FIELD_EL[field] || '#' + field); if (!el) return null;
   if (el.type === 'radio') return el.closest('.seg');
@@ -201,7 +201,7 @@ function collect(f) {
   return {
     gender: val('gender'), want_gender: val('want_gender'), dept: f.dept.value, same_dept: val('same_dept') || 'no', same_campus: f.same_campus.checked,
     student_no: f.student_no.value ? String(f.student_no.value).padStart(2, '0') : '', birth: f.birth.value,
-    mbti: mbti.length === 4 ? mbti : '', intro: f.intro.value, instagram: f.instagram.value.trim(), notify_email: f.notify_email.value.trim(), likes: chipValues('likes'), xmas: chipValues('xmas'), exclude_emails: f.exclude_emails.value,
+    mbti: mbti.length === 4 ? mbti : '', intro: f.intro.value, instagram: f.instagram.value.trim(), kakao: f.kakao.value.trim(), notify_email: f.notify_email.value.trim(), likes: chipValues('likes'), xmas: chipValues('xmas'), exclude_emails: f.exclude_emails.value,
     agree_collect: f.agree_collect.checked, agree_share: f.agree_share.checked,
   };
 }
@@ -215,7 +215,11 @@ function clientCheck(b, f) {
   if (!b.mbti) e.push(['mbti', 'MBTI 네 글자를 모두 골라주세요']);
   if (!b.likes.length) e.push(['likes', '좋아하는 것을 하나 이상 골라주세요']);
   if (!b.xmas.length) e.push(['xmas', '크리스마스에 하고 싶은 것을 하나 이상 골라주세요']);
-  if (!/^@?[A-Za-z0-9._]{1,30}$/.test(b.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/$/, ''))) e.push(['instagram', '인스타 아이디를 적어주세요 (영문, 숫자, 마침표, 밑줄)']);
+  const instaOk = /^@?[A-Za-z0-9._]{1,30}$/.test(b.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/$/, ''));
+  const kakaoOk = /^[A-Za-z0-9._-]{4,20}$/.test(b.kakao);
+  if (b.instagram && !instaOk) e.push(['instagram', '인스타 아이디를 확인해 주세요 (영문, 숫자, 마침표, 밑줄)']);
+  if (b.kakao && !kakaoOk) e.push(['kakao', '카톡 ID를 확인해 주세요 (영문, 숫자, . _ - 4~20자)']);
+  if (!b.instagram && !b.kakao) e.push(['instagram', '인스타 아이디나 카톡 ID 중 하나는 적어주세요']);
   if (!b.agree_collect) e.push(['agree_collect', '개인정보 수집·이용에 동의해 주세요']);
   if (!b.agree_share) e.push(['agree_share', '매칭 상대 정보 제공에 동의해 주세요']);
   return e;
@@ -248,7 +252,7 @@ function showDone(editable) {
   const s = ME.saju;
   $('#my-saju').innerHTML = s ? `🔮 나는 <b>${s.ilju}일주(${s.stemHanja})</b>, <b>${s.element}</b> 기운이에요.<br>${s.elementDesc} · ${esc(ME.mbti)}` : '';
   $('#preview-card').innerHTML = `<div class="avatar sm el-${esc(s?.element || '')}">${ELEMENT_EMOJI[s?.element] || '🎁'}</div>
-    <div><small>매칭 상대에게는 처음에 이렇게 보여요</small><br><b>${esc([ME.college, ME.mbti].filter(Boolean).join(' · '))}</b><br><small>학과, 학번, 인스타는 서로 수락한 뒤에만 공개돼요 (이름은 받지 않아요)</small></div>`;
+    <div><small>매칭 상대에게는 처음에 이렇게 보여요</small><br><b>${esc([ME.college, ME.mbti].filter(Boolean).join(' · '))}</b><br><small>학과, 학번, 연락처는 서로 수락한 뒤에만 공개돼요 (이름은 받지 않아요)</small></div>`;
   // 캘린더: 발표 시각부터 1시간
   const start = new Date(CONFIG.announceAt), end = new Date(start.getTime() + 36e5);
   const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
@@ -306,21 +310,21 @@ $('#card-btn').onclick = async () => {
 function renderResult(r) {
   const p = r.partner, c = r.compat;
   const item = (title, score, text) => `<div class="compat-item"><div class="t"><span>${title}</span><span>${score}점</span></div><div class="bar"><i style="width:${score}%"></i></div><p>${esc(text)}</p></div>`;
-  const both = !!p.instagram;
+  const both = !!p.revealed;
   let action;
-  if (r.blocked) action = `<div class="contact-box">${r.iBlocked ? '차단했어요. 상대는 더 이상 내 실명과 인스타를 볼 수 없어요.' : '이 매칭은 종료됐어요.'}</div>`;
+  if (r.blocked) action = `<div class="contact-box">${r.iBlocked ? '차단했어요. 상대는 더 이상 내 연락처를 볼 수 없어요.' : '이 매칭은 종료됐어요.'}</div>`;
   else if (!r.myAnswer && r.expired) action = `<div class="contact-box">답변 기한이 지났어요 ⛄</div>`;
-  else if (!r.myAnswer) action = `<p class="sub" style="margin-top:18px">둘 다 수락하면 학과, 학번, 인스타가 공개돼요.<br>거절해도 상대에게 이유는 알려지지 않아요.</p>
+  else if (!r.myAnswer) action = `<p class="sub" style="margin-top:18px">둘 다 수락하면 학과, 학번, 연락처(인스타·카톡)가 공개돼요.<br>거절해도 상대에게 이유는 알려지지 않아요.</p>
       <div class="btn-row"><button class="btn ghost" data-ans="no">아쉽지만 패스</button><button class="btn" data-ans="yes">만나볼래요 💌</button></div>
       <div class="deadline">답변 기한: ${fmtDate(r.deadline)}</div>`;
   else if (r.myAnswer === 'no') action = `<div class="contact-box">패스했어요. 다음 시즌에 더 좋은 인연이 있길! 🎄</div>`;
-  else if (both) action = `<div class="contact-box">🎉 서로 수락했어요!<br><a class="insta-link" href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener">@${esc(p.instagram)}</a><br><span class="hint">먼저 DM 보내보세요. 메리 크리스마스!</span></div>
+  else if (both) action = `<div class="contact-box">🎉 서로 수락했어요!<br>${p.instagram ? `<a class="insta-link" href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener">@${esc(p.instagram)}</a><br>` : ''}${p.kakao ? `<div class="insta-link">💬 카톡 ID: ${esc(p.kakao)}</div>` : ''}<span class="hint">먼저 연락해 보세요. 메리 크리스마스!</span></div>
       <button class="link" id="block-btn">불쾌한 일이 있으면 차단하기</button>`;
   else if (r.theirAnswer === 'no') action = `<div class="contact-box">이번엔 인연이 아니었나 봐요. 다음 시즌에 더 좋은 짝이 있을 거예요 ⛄</div>`;
   else if (r.theirAnswer === 'expired') action = `<div class="contact-box">상대가 기한 안에 답하지 않았어요. 다음 시즌엔 꼭! ⛄</div>`;
   else action = `<div class="contact-box">💌 수락했어요! 상대의 답을 기다리는 중이에요.<br><span class="hint">상대도 수락하면 학교 메일로 알려드릴게요. 기한: ${fmtDate(r.deadline)}</span></div>`;
 
-  const title = both ? '@' + esc(p.instagram) : '🎁 산타의 선물';
+  const title = both ? (p.instagram ? '@' + esc(p.instagram) : '💬 ' + esc(p.kakao)) : '🎁 산타의 선물';
   const meta = esc((both ? [p.dept, p.student_no && p.student_no + '학번', p.mbti] : [p.college, p.mbti]).filter(Boolean).join(' · '));
   $('#partner').innerHTML = `
     <div class="stage s1"><div class="display" style="font-size:18px;color:var(--muted)">🎄 우리 둘의 궁합 점수는</div>
@@ -366,7 +370,7 @@ function renderResult(r) {
   };
   const bb = $('#block-btn');
   if (bb) bb.onclick = async () => {
-    if (!confirm('차단하면 상대는 더 이상 내 실명과 인스타를 볼 수 없고, 운영자에게 자동으로 신고돼요. 진행할까요?')) return;
+    if (!confirm('차단하면 상대는 더 이상 내 연락처를 볼 수 없고, 운영자에게 자동으로 신고돼요. 진행할까요?')) return;
     const reason = prompt('무슨 일이 있었는지 적어주시면 운영자가 확인할게요 (선택)') || '';
     try { await post('/api/result/block', { reason }); route(); } catch (e) { alert(e.message); }
   };
