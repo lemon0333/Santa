@@ -2,7 +2,7 @@
 const { getApp, parseCookies } = require('../lib/vercel-app');
 
 module.exports = async (req, res) => {
-  if ((process.env.SESSION_SECRET || '').length < 32) return res.status(500).json({ error: 'SESSION_SECRET 환경변수가 없거나 너무 짧아요 (32자 이상)' });
+  if (!process.env.SESSION_SECRET) return res.status(500).json({ error: 'SESSION_SECRET 환경변수가 없어요' });
   if (!(process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL)) return res.status(500).json({ error: 'Redis(Upstash)가 아직 연결되지 않았어요' });
   const app = getApp();
   const url = new URL(req.url, 'http://x');
