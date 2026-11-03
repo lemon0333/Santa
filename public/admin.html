@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>관리자 · 산타가 이어줄게</title>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap" style="max-width:720px">
+  <header class="hero"><h1 style="font-size:32px">🎅 관리자</h1></header>
+
+  <section class="card" id="login">
+    <label for="pw">관리자 비밀번호</label>
+    <input type="text" id="pw" autocomplete="current-password" style="-webkit-text-security:disc">
+    <button class="btn" id="login-btn">로그인</button>
+    <div class="err" id="login-err"></div>
+  </section>
+
+  <div id="panel" class="hidden">
+    <section class="card">
+      <h2>진행 단계</h2>
+      <p class="sub">현재: <span class="status-pill" id="phase"></span></p>
+      <div class="btn-row">
+        <button class="btn ghost" data-phase="open">① 신청 받기</button>
+        <button class="btn ghost" data-phase="closed">② 신청 마감</button>
+        <button class="btn ghost" data-phase="announced">④ 결과 발표</button>
+      </div>
+      <p class="hint">결과 발표를 누르면 신청자 전원에게 학교 메일이 발송돼요.</p>
+      <p class="hint">발표하면 단계를 되돌릴 수 없어요. 답변 기한은 발표 시점부터 48시간이에요.</p>
+      <button class="btn ghost" id="remind-btn">답 안 한 사람에게 리마인드 메일 지금 보내기</button>
+      <p class="hint">따로 안 눌러도 답변 마감 24시간 전에 자동으로 한 번 보내요.</p>
+      <label for="close">신청 마감 시각 (신청 중 카운트다운)</label>
+      <input type="text" id="close" placeholder="2026-12-07T23:59:00+09:00">
+      <label for="announce">발표 시각 (마감 후 카운트다운)</label>
+      <input type="text" id="announce" placeholder="2026-12-10T20:00:00+09:00">
+      <button class="btn ghost" id="save-announce">시각 저장</button>
+      <div class="err" id="phase-err"></div>
+    </section>
+
+    <section class="card">
+      <h2>③ 매칭</h2>
+      <p class="sub">신청을 마감한 뒤 미리보기로 확인하고 확정하세요. 확정은 다시 눌러도 덮어써져요(발표 전까지).</p>
+      <div class="btn-row">
+        <button class="btn ghost" id="preview">미리보기</button>
+        <button class="btn" id="commit">매칭 확정</button>
+      </div>
+      <div class="err" id="match-err"></div>
+      <div id="match-out"></div>
+    </section>
+
+    <section class="card">
+      <h2>신청 현황</h2>
+      <div id="stats"></div>
+    </section>
+
+    <section class="card">
+      <h2>신청자 · 제재</h2>
+      <p class="sub">신고 많은 순. 제재하면 매칭에서 빠지고, 이미 매칭된 상대에게는 "매칭 취소"로 보여요.</p>
+      <button class="btn ghost" id="load-users">신청자 불러오기</button>
+      <div id="users" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px"></div>
+    </section>
+  </div>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || '오류'); return d;
+}
+const P = { open: '신청 중', closed: '마감 (매칭 준비)', announced: '발표됨' };
+async function load() {
+  const r = await fetch('/api/admin/stats'); if (!r.ok) return;
+  const s = await r.json();
+  $('#login').classList.add('hidden'); $('#panel').classList.remove('hidden');
+  $('#phase').textContent = P[s.phase]; $('#announce').value = s.announceAt; $('#close').value = s.closeAt;
+  $('#stats').innerHTML = `
+    <p>총 신청 <b>${s.total}</b>명 · 매칭 <b>${s.matches}</b>쌍 · 답변 ${s.answered}건 · 서로 수락 <b>${s.accepted}</b>쌍</p>
+    <h3>성별 → 원하는 상대</h3><table>${s.byGender.map((g) => `<tr><td>${g.k.replace('M', '남').replace('F', '여').replace('A', '상관없음')}</td><td>${g.c}</td></tr>`).join('')}</table>
+    <h3>캠퍼스</h3><table>${s.byCampus.map((d) => `<tr><td>${esc(d.k)}</td><td>${d.c}</td></tr>`).join('')}</table>
+    <h3>학과별</h3><table>${s.byDept.map((d) => `<tr><td>${esc(d.k)}</td><td>${d.c}</td></tr>`).join('')}</table>
+    <h3>신고 (${s.reports.length})</h3><table>${s.reports.map((x) => `<tr><td>${esc(x.createdAt?.slice(0, 16))}</td><td>${esc(x.targetName)}<br>${esc(x.targetEmail)}</td><td>${esc(x.reason)}</td></tr>`).join('') || '<tr><td>없음</td></tr>'}</table>`;
+}
+$('#login-btn').onclick = async () => { try { await post('/api/admin/login', { password: $('#pw').value }); load(); } catch (e) { $('#login-err').textContent = e.message; } };
+document.querySelectorAll('[data-phase]').forEach((b) => (b.onclick = async () => {
+  $('#phase-err').textContent = '';
+  if (b.dataset.phase === 'announced' && !confirm('결과를 발표하고 전원에게 메일을 보낼까요?')) return;
+  try { await post('/api/admin/phase', { phase: b.dataset.phase }); load(); } catch (e) { $('#phase-err').textContent = e.message; }
+}));
+$('#save-announce').onclick = async () => { try { await post('/api/admin/phase', { announceAt: $('#announce').value, closeAt: $('#close').value }); load(); } catch (e) { $('#phase-err').textContent = e.message; } };
+async function loadUsers() {
+  const r = await fetch('/api/admin/users'); if (!r.ok) return;
+  const users = await r.json();
+  $('#users').innerHTML = users.map((u) => `<div style="border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;background:${u.blocked ? '#fde8e8' : '#fff'}">
+    <b>${esc(u.name)}</b> ${u.gender === 'M' ? '남' : '여'} · ${esc(u.student_no)}학번<br>${esc(u.dept)}<br>${esc(u.email)}<br>@${esc(u.instagram)} · 생일 ${esc(u.birth)}<br>
+    신고 <b style="color:${u.reports ? 'var(--red)' : 'inherit'}">${u.reports}</b>
+    <button class="btn ${u.blocked ? 'green' : 'ghost'}" style="padding:8px;margin-top:6px;font-size:13px" data-ban="${u.id}" data-to="${u.blocked ? '' : '1'}">${u.blocked ? '제재 해제' : '제재'}</button></div>`).join('') || '신청자가 없어요';
+  $('#users').querySelectorAll('[data-ban]').forEach((b) => (b.onclick = async () => {
+    if (b.dataset.to && !confirm('이 사람을 제재할까요?')) return;
+    await post('/api/admin/ban', { id: b.dataset.ban, banned: !!b.dataset.to }); loadUsers();
+  }));
+}
+$('#load-users').onclick = loadUsers;
+$('#remind-btn').onclick = async () => { $('#phase-err').textContent = ''; try { await post('/api/admin/remind'); $('#phase-err').textContent = '리마인드 메일을 보내는 중이에요'; } catch (e) { $('#phase-err').textContent = e.message; } };
+async function match(commit) {
+  $('#match-err').textContent = '';
+  try {
+    const r = await post('/api/admin/match', { commit });
+    $('#match-out').innerHTML = `<p>${commit ? '✅ 확정됨' : '미리보기'} · 신청 ${r.applicants}명 중 ${r.matched}명 매칭, ${r.unmatched}명 미매칭</p>
+      <table><tr><th>A</th><th>B</th><th>점수</th></tr>${r.pairs.map((p) => `<tr><td>${esc(p.a)}</td><td>${esc(p.b)}</td><td>${p.score}</td></tr>`).join('')}</table>`;
+    load();
+  } catch (e) { $('#match-err').textContent = e.message; }
+}
+$('#preview').onclick = () => match(false);
+$('#commit').onclick = () => confirm('매칭을 확정할까요?') && match(true);
+load();
+</script>
+</body>
+</html>

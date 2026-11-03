@@ -1,0 +1,15 @@
+{
+  "name": "santa-match",
+  "private": true,
+  "description": "산타가 이어줄게: 경희대 크리스마스 시즌 매칭 (Vercel)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node local/dev-server.js",
+    "test": "node --test test/*.test.js && STORE=redis node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@upstash/redis": "1.34.3",
+    "@vercel/functions": "1.5.2",
+    "nodemailer": "6.9.16"
+  }
+}
