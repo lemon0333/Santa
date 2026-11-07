@@ -50,4 +50,23 @@ async function match(commit) {
 }
 $('#preview').onclick = () => match(false);
 $('#commit').onclick = () => confirm('매칭을 확정할까요?') && match(true);
+// ---------- 보안 · IP 차단 ----------
+const T = { 'rate-limit': '요청 제한', 'code-fail': '코드 틀림', 'admin-login-fail': '관리자 로그인 실패', csrf: '외부 사이트 요청' };
+async function loadSec() {
+  $('#sec-err').textContent = '';
+  const r = await fetch('/api/admin/security'); if (!r.ok) return;
+  const d = await r.json();
+  const blockBtn = (ip, on) => `<button class="btn ${on ? 'green' : 'ghost'}" style="padding:6px 10px;font-size:12px;width:auto" data-ip="${esc(ip)}" data-on="${on ? '' : '1'}">${on ? '해제' : '차단'}</button>`;
+  $('#sec').innerHTML = `<p>내 IP: <b>${esc(d.myIp)}</b> (이 IP는 차단되지 않아요)</p>
+    <h3>차단 중 (${d.blockedIps.length})</h3><table>${d.blockedIps.map((b) => `<tr><td>${esc(b.ip)}</td><td>${esc(b.note || '')}</td><td>${esc(b.at.slice(0, 16))}</td><td>${blockBtn(b.ip, true)}</td></tr>`).join('') || '<tr><td>없음</td></tr>'}</table>
+    <h3>의심 IP (24시간)</h3><table><tr><th>IP</th><th>횟수</th><th>종류</th><th>시도한 메일</th><th></th></tr>${d.topIps.map((x) => `<tr><td>${esc(x.ip)}</td><td><b>${x.count}</b></td><td>${Object.entries(x.types).map(([k, v]) => `${esc(T[k] || k)} ${v}`).join('<br>')}</td><td>${x.emails.map(esc).join('<br>')}</td><td>${x.ip === d.myIp ? '나' : blockBtn(x.ip, x.blocked)}</td></tr>`).join('') || '<tr><td colspan="5">없음</td></tr>'}</table>
+    <h3>최근 기록</h3><table>${d.events.slice(0, 100).map((e) => `<tr><td>${esc(new Date(e.t).toLocaleString('ko-KR'))}</td><td>${esc(e.ip)}</td><td>${esc(T[e.type] || e.type)}</td><td>${esc(e.email || '')}</td><td>${esc(e.path)}</td></tr>`).join('') || '<tr><td>없음</td></tr>'}</table>`;
+  $('#sec').querySelectorAll('[data-ip]').forEach((b) => (b.onclick = () => setBlock(b.dataset.ip, !!b.dataset.on)));
+}
+async function setBlock(ip, block) {
+  if (block && !confirm(ip + ' 를 차단할까요?')) return;
+  try { await post('/api/admin/block-ip', { ip, block, note: '관리자 차단' }); loadSec(); } catch (e) { $('#sec-err').textContent = e.message; }
+}
+$('#load-sec').onclick = loadSec;
+$('#block-btn').onclick = () => { const ip = $('#block-ip').value.trim(); if (ip) setBlock(ip, true); };
 load();

@@ -13,6 +13,7 @@ function fakeRedis() {
     async incrby(k, by) { const n = Number(kv.get(k) || 0) + by; kv.set(k, String(n)); return n; },
     async expire() { return 1; },
     async lpush(k, ...v) { const l = lists.get(k) || []; l.unshift(...v.map(str)); lists.set(k, l); return l.length; },
+    async ltrim(k, a, b) { lists.set(k, (lists.get(k) || []).slice(a, b + 1)); return 'OK'; },
     async lrange(k, a, b) { return (lists.get(k) || []).slice(a, b + 1); },
   };
 }

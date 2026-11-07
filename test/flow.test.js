@@ -184,3 +184,24 @@ test('인스타 대신 카톡 ID만 적어도 신청 가능, 둘 다 없으면 �
   const me = await call('GET', '/api/me', null, sid);
   assert.equal(me.json.kakao, 'santa_kim'); assert.equal(me.json.instagram, '');
 });
+
+test('보안: 실패가 기록되고, 관리자가 IP를 차단하면 그 IP는 거절됨', async () => {
+  const store = mkStore();
+  const app = createApp({ store, mail: async () => {}, enqueue: async () => {}, cfg: { emailDomain: 'khu.ac.kr', secret: 's'.repeat(40), adminPassword: 'pw', siteUrl: 'http://x', dev: true } });
+  const call = (method, path, body, ip, cookies = {}) => app({ method, path, body, cookies, ip });
+  await call('POST', '/api/auth/request', { email: 'v@khu.ac.kr' }, '6.6.6.6');
+  for (let i = 0; i < 3; i++) await call('POST', '/api/auth/verify', { email: 'v@khu.ac.kr', code: '000000' }, '6.6.6.6');
+  const login = await call('POST', '/api/admin/login', { password: 'pw' }, '1.1.1.1');
+  const adm = { adm: login.cookies[0].split(';')[0].split('=')[1] };
+  const sec = await call('GET', '/api/admin/security', null, '1.1.1.1', adm);
+  assert.equal(sec.json.topIps[0].ip, '6.6.6.6');
+  assert.equal(sec.json.topIps[0].types['code-fail'], 3);
+  assert.equal(sec.json.topIps[0].emails[0], 'v@khu.ac.kr');
+  assert.equal((await call('POST', '/api/admin/block-ip', { ip: '1.1.1.1', block: true }, '1.1.1.1', adm)).status, 400); // 내 IP는 못 막음
+  assert.equal((await call('POST', '/api/admin/block-ip', { ip: '6.6.6.6', block: true }, '1.1.1.1', adm)).status, 200);
+  assert.equal((await call('GET', '/api/config', null, '6.6.6.6')).status, 403);
+  assert.equal((await call('GET', '/api/config', null, '7.7.7.7')).status, 200);
+  assert.equal((await call('GET', '/api/admin/security', null, '1.1.1.1')).status, 401); // 쿠키 없으면 관리자 API 불가
+  await call('POST', '/api/admin/block-ip', { ip: '6.6.6.6', block: false }, '1.1.1.1', adm);
+  assert.equal((await call('GET', '/api/config', null, '6.6.6.6')).status, 200);
+});
