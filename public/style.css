@@ -122,6 +122,30 @@ textarea { resize: vertical; min-height: 70px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 td, th { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; }
 
+/* 관리자: 신청자 목록 (엑셀식 표, 가로 스크롤) */
+.sheet-wrap:empty { display: none; }
+.sheet-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.sheet { width: max-content; min-width: 100%; font-size: 12px; border-collapse: separate; border-spacing: 0; }
+.sheet th, .sheet td { padding: 6px 10px; white-space: nowrap; border-right: 1px solid var(--line); }
+.sheet th:last-child, .sheet td:last-child { border-right: 0; }
+.sheet thead th { position: sticky; top: 0; z-index: 1; background: #f6efe3; font-weight: 700; }
+.sheet tbody tr { background: #fff; }
+.sheet tbody tr:nth-child(even) { background: #fcf9f4; }
+.sheet tbody tr:hover { background: #fff3d6; }
+.sheet tbody tr.banned { background: #fde8e8; }
+.sheet th:nth-child(1), .sheet td:nth-child(1) { position: sticky; left: 0; width: 40px; min-width: 40px; max-width: 40px; box-sizing: border-box; box-shadow: inset -1px 0 0 var(--line); }
+.sheet th:nth-child(2), .sheet td:nth-child(2) { position: sticky; left: 40px; box-shadow: inset -1px 0 0 var(--line); }
+.sheet td:nth-child(-n+2) { background: inherit; }
+.sheet th:nth-child(-n+2), .sheet td:nth-child(-n+2) { border-right: 0; }
+.sheet thead th:nth-child(-n+2) { z-index: 2; }
+.sheet td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sheet .btn { width: auto; padding: 4px 10px; font-size: 12px; margin: 0; }
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 13px; }
+.pager:empty { display: none; }
+.pager .btn { width: auto; padding: 6px 12px; font-size: 13px; margin: 0; }
+.pager .btn:disabled { opacity: .4; cursor: default; }
+.pager span { padding: 0 6px; color: var(--muted); }
+
 /* 추가: 동의, 미리보기, 성비, 오류 강조 */
 .consent { margin-top: 18px; padding: 14px; background: #f6efe3; border-radius: 14px; display: grid; gap: 12px; }
 .consent .check { margin: 0; }

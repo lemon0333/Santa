@@ -25,13 +25,33 @@ document.querySelectorAll('[data-phase]').forEach((b) => (b.onclick = async () =
   try { await post('/api/admin/phase', { phase: b.dataset.phase }); load(); } catch (e) { $('#phase-err').textContent = e.message; }
 }));
 $('#save-announce').onclick = async () => { try { await post('/api/admin/phase', { announceAt: $('#announce').value, closeAt: $('#close').value }); load(); } catch (e) { $('#phase-err').textContent = e.message; } };
+// 신청자 목록: 엑셀식 표, 10명씩 페이지 나눔
+const PAGE = 10;
+let users = [], page = 0;
 async function loadUsers() {
   const r = await fetch('/api/admin/users'); if (!r.ok) return;
-  const users = await r.json();
-  $('#users').innerHTML = users.map((u) => `<div style="border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;background:${u.blocked ? '#fde8e8' : '#fff'}">
-    <b>${esc(u.handle)}</b> ${u.gender === 'M' ? '남' : '여'} · ${esc(u.student_no)}학번<br>${esc(u.dept || '학과 미선택')}<br>${esc(u.email)}<br>생일 ${esc(u.birth)}<br>
-    신고 <b style="color:${u.reports ? 'var(--red)' : 'inherit'}">${u.reports}</b>
-    <button class="btn ${u.blocked ? 'green' : 'ghost'}" style="padding:8px;margin-top:6px;font-size:13px" data-ban="${u.id}" data-to="${u.blocked ? '' : '1'}">${u.blocked ? '제재 해제' : '제재'}</button></div>`).join('') || '신청자가 없어요';
+  users = await r.json();
+  renderUsers();
+}
+function renderUsers() {
+  const pages = Math.max(1, Math.ceil(users.length / PAGE));
+  page = Math.min(Math.max(page, 0), pages - 1);
+  const start = page * PAGE, rows = users.slice(start, start + PAGE);
+  $('#users').innerHTML = users.length ? `<table class="sheet">
+    <thead><tr><th>#</th><th>닉네임</th><th>성별</th><th>학번</th><th>학과</th><th>이메일</th><th>생일</th><th>신고</th><th>제재</th></tr></thead>
+    <tbody>${rows.map((u, i) => `<tr class="${u.blocked ? 'banned' : ''}">
+      <td class="num">${start + i + 1}</td><td><b>${esc(u.handle)}</b></td><td>${u.gender === 'M' ? '남' : '여'}</td><td>${esc(u.student_no)}</td>
+      <td>${esc(u.dept || '학과 미선택')}</td><td>${esc(u.email)}</td><td>${esc(u.birth)}</td>
+      <td class="num"><b style="color:${u.reports ? 'var(--red)' : 'inherit'}">${u.reports}</b></td>
+      <td><button class="btn ${u.blocked ? 'green' : 'ghost'}" data-ban="${u.id}" data-to="${u.blocked ? '' : '1'}">${u.blocked ? '제재 해제' : '제재'}</button></td></tr>`).join('')}</tbody></table>` : '신청자가 없어요';
+  $('#users').scrollTop = 0;
+  $('#users-pager').innerHTML = users.length > PAGE ? `
+    <button class="btn ghost" data-go="0" ${page === 0 ? 'disabled' : ''}>«</button>
+    <button class="btn ghost" data-go="${page - 1}" ${page === 0 ? 'disabled' : ''}>‹ 이전</button>
+    <span>${page + 1} / ${pages} 페이지 · 총 ${users.length}명</span>
+    <button class="btn ghost" data-go="${page + 1}" ${page === pages - 1 ? 'disabled' : ''}>다음 ›</button>
+    <button class="btn ghost" data-go="${pages - 1}" ${page === pages - 1 ? 'disabled' : ''}>»</button>` : (users.length ? `<span>총 ${users.length}명</span>` : '');
+  $('#users-pager').querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { page = Number(b.dataset.go); renderUsers(); }));
   $('#users').querySelectorAll('[data-ban]').forEach((b) => (b.onclick = async () => {
     if (b.dataset.to && !confirm('이 사람을 제재할까요?')) return;
     await post('/api/admin/ban', { id: b.dataset.ban, banned: !!b.dataset.to }); loadUsers();
